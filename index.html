@@ -833,12 +833,6 @@
                 currentTileLayer = baseLayers[e.target.value];
                 currentTileLayer.addTo(map);
             });
-
-            // Refresh data
-            document.getElementById('refreshData').addEventListener('click', function (e) {
-                e.preventDefault();
-                loadCentersData();
-            });
         }
 
         // Load centers data from the WFS service
