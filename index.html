@@ -1,0 +1,1353 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-HK">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>長者鄰舍中心查詢系統</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Microsoft JhengHei', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background-color: #f5f5f5;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c6e49, #4c956c);
+            color: white;
+            padding: 15px 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header h1 i {
+            color: #ffd166;
+        }
+
+        .header p {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            max-width: 800px;
+        }
+
+        .container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* Accordion Styles */
+        .accordion-panel {
+            width: 380px;
+            background-color: white;
+            border-right: 1px solid #ddd;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
+            z-index: 500;
+            transition: transform 0.3s ease;
+        }
+
+        .accordion {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+        }
+
+        .accordion-item {
+            margin-bottom: 15px;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            border: 1px solid #e0e0e0;
+        }
+
+        .accordion-header {
+            background-color: #4c956c;
+            color: white;
+            padding: 15px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            transition: background-color 0.2s;
+        }
+
+        .accordion-header:hover {
+            background-color: #2c6e49;
+        }
+
+        .accordion-header.active {
+            background-color: #1b4332;
+        }
+
+        .accordion-content {
+            background-color: white;
+            padding: 0;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease, padding 0.3s ease;
+        }
+
+        .accordion-content.active {
+            padding: 20px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        /* Nested Accordion Styles */
+        .nested-accordion {
+            margin-top: 10px;
+        }
+
+        .nested-accordion-item {
+            margin-bottom: 10px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .nested-accordion-header {
+            background-color: #f8f9fa;
+            color: #333;
+            padding: 12px 15px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 500;
+            border-left: 4px solid #4c956c;
+            transition: background-color 0.2s;
+        }
+
+        .nested-accordion-header:hover {
+            background-color: #e9ecef;
+        }
+
+        .nested-accordion-content {
+            background-color: white;
+            padding: 0;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .nested-accordion-content.active {
+            padding: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .center-details {
+            background-color: #f8f9fa;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid #2c6e49;
+        }
+
+        .center-details h5 {
+            color: #2c6e49;
+            margin-bottom: 10px;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .center-details p {
+            margin: 5px 0;
+            font-size: 0.9rem;
+            color: #555;
+        }
+
+        .center-details p strong {
+            color: #333;
+            min-width: 80px;
+            display: inline-block;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .btn {
+            background-color: #4c956c;
+            color: white;
+            border: none;
+            padding: 12px 18px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            width: 100%;
+            transition: background-color 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .btn:hover {
+            background-color: #2c6e49;
+        }
+
+        .btn.active {
+            background-color: #1b4332;
+        }
+
+        .btn-danger {
+            background-color: #e74c3c;
+        }
+
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
+
+        .btn-success {
+            background-color: #27ae60;
+        }
+
+        .btn-success:hover {
+            background-color: #219653;
+        }
+
+        .info-box {
+            background-color: #f8f9fa;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid #4c956c;
+            font-size: 0.9rem;
+        }
+
+        .info-box h4 {
+            margin-bottom: 8px;
+            color: #1b4332;
+        }
+
+        /* Map Styles */
+        .map-container {
+            flex: 1;
+            position: relative;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* Footer Styles */
+        .footer {
+            background-color: #1b4332;
+            color: white;
+            padding: 6px 20px;
+            text-align: center;
+            font-size: 0.85rem;
+            border-top: 1px solid #4c956c;
+            z-index: 1000;
+        }
+
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 15px;
+        }
+
+        .footer-links a {
+            color: #ecf0f1;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .footer-links a:hover {
+            color: #4c956c;
+        }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+
+            .accordion-panel {
+                width: 100%;
+                height: 40vh;
+                border-right: none;
+                border-bottom: 1px solid #ddd;
+            }
+
+            .header h1 {
+                font-size: 1.3rem;
+            }
+
+            .header p {
+                font-size: 0.85rem;
+            }
+
+            .accordion-header {
+                padding: 12px 15px;
+                font-size: 0.95rem;
+            }
+
+            .nested-accordion-header {
+                padding: 10px 12px;
+                font-size: 0.9rem;
+            }
+
+            .btn {
+                padding: 10px 15px;
+                font-size: 0.95rem;
+            }
+
+            .footer-content {
+                flex-direction: column;
+                gap: 8px;
+                text-align: center;
+            }
+
+            .footer-links {
+                justify-content: center;
+            }
+        }
+
+        /* For very small screens like iPhone SE */
+        @media (max-width: 375px) {
+            .header {
+                padding: 12px 15px;
+            }
+
+            .header h1 {
+                font-size: 1.2rem;
+            }
+
+            .header p {
+                font-size: 0.8rem;
+            }
+
+            .accordion {
+                padding: 10px;
+            }
+
+            .accordion-header {
+                padding: 10px 12px;
+                font-size: 0.9rem;
+            }
+
+            .accordion-content.active {
+                padding: 15px;
+            }
+
+            .nested-accordion-header {
+                padding: 8px 10px;
+                font-size: 0.85rem;
+            }
+
+            .btn {
+                padding: 8px 12px;
+                font-size: 0.9rem;
+            }
+
+            .footer {
+                padding: 10px 15px;
+                font-size: 0.8rem;
+            }
+        }
+
+        /* Stats Display */
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+            padding: 10px 0;
+            border-top: 1px dashed #ddd;
+            font-size: 0.9rem;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-weight: bold;
+            color: #1b4332;
+            font-size: 1.2rem;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.8rem;
+        }
+
+        /* Toggle panel button for mobile */
+        .panel-toggle {
+            display: none;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 12px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            cursor: pointer;
+        }
+
+        @media (max-width: 768px) {
+            .panel-toggle {
+                display: block;
+            }
+
+            .accordion-panel.collapsed {
+                transform: translateY(-100%);
+                height: 0;
+                overflow: hidden;
+            }
+        }
+
+        /* Legend */
+        .legend {
+            background-color: white;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin-top: 10px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            margin-right: 8px;
+            border-radius: 3px;
+        }
+
+        /* Loading indicator */
+        .loading {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 20px 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            text-align: center;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4c956c;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Search Bar */
+        .search-container {
+            margin-bottom: 15px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            transition: border-color 0.2s;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #4c956c;
+            box-shadow: 0 0 0 2px rgba(76, 149, 108, 0.2);
+        }
+
+        /* Center List */
+        .center-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 10px;
+            margin-top: 10px;
+        }
+
+        .center-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .center-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .center-item:last-child {
+            border-bottom: none;
+        }
+
+        .center-name {
+            font-weight: 600;
+            color: #1b4332;
+            margin-bottom: 5px;
+        }
+
+        .center-district {
+            font-size: 0.85rem;
+            color: #666;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1><i class="fas fa-hands-helping"></i> 長者鄰舍中心查詢系統</h1>
+        <p>提供全港長者鄰舍中心的資訊查詢及地圖定位服務</p>
+    </div>
+
+    <div class="container">
+        <button class="panel-toggle" id="panelToggle" style="display:none">
+            <i class="fas fa-bars"></i> 控制面板
+        </button>
+
+        <div class="accordion-panel" id="accordionPanel">
+            <div class="accordion">
+                <!-- Search Centers -->
+                <div class="accordion-item">
+                    <div class="accordion-header active" id="headerSearch">
+                        <span><i class="fas fa-search"></i> 搜尋中心</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="accordion-content active" id="contentSearch">
+                        <div class="search-container">
+                            <input type="text" id="searchInput" class="search-input" placeholder="輸入中心名稱、地區或機構名稱...">
+                        </div>
+                        <div class="control-group">
+                            <label><i class="fas fa-filter"></i> 篩選條件</label>
+                            <select id="districtFilter" class="btn" style="padding: 10px; margin-bottom: 10px;">
+                                <option value="">所有地區</option>
+                            </select>
+                            <select id="organizationFilter" class="btn" style="padding: 10px;">
+                                <option value="">所有機構</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <div class="stats">
+                                <div class="stat-item">
+                                    <div class="stat-value" id="totalCenters">0</div>
+                                    <div class="stat-label">中心總數</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-value" id="visibleCenters">0</div>
+                                    <div class="stat-label">顯示中心</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Centers by Organization -->
+                <div class="accordion-item">
+                    <div class="accordion-header" id="headerOrganizations">
+                        <span><i class="fas fa-building"></i> 按機構瀏覽</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="accordion-content" id="contentOrganizations">
+                        <div class="info-box">
+                            <h4><i class="fas fa-info-circle"></i> 使用說明</h4>
+                            <p>點擊機構名稱展開查看其管理的地區和中心</p>
+                            <p>點擊中心名稱查看詳細資訊並在地圖上定位</p>
+                        </div>
+                        <div id="organizationsList" class="nested-accordion">
+                            <!-- Organizations will be populated here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Map Controls -->
+                <div class="accordion-item">
+                    <div class="accordion-header" id="headerControls">
+                        <span><i class="fas fa-map-marked-alt"></i> 地圖控制</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="accordion-content" id="contentControls">
+                        <div class="control-group">
+                            <label><i class="fas fa-map"></i> 底圖樣式</label>
+                            <select id="baseMapSelect" class="btn" style="padding: 10px;">
+                                <option value="OpenStreetMap">OpenStreetMap</option>
+                                <option value="地形圖">地形圖</option>
+                                <option value="衛星圖像">衛星圖像</option>
+                            </select>
+                        </div>
+
+                        <div class="control-group">
+                            <label><i class="fas fa-search"></i> 縮放級別</label>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <button class="btn" id="zoomInBtn" style="width: auto; flex: 1;">
+                                    <i class="fas fa-search-plus"></i> 放大
+                                </button>
+                                <button class="btn" id="zoomOutBtn" style="width: auto; flex: 1;">
+                                    <i class="fas fa-search-minus"></i> 縮小
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="control-group">
+                            <label><i class="fas fa-location-arrow"></i> 地圖視圖</label>
+                            <button class="btn" id="resetViewBtn">
+                                <i class="fas fa-globe-asia"></i> 重置至香港全境
+                            </button>
+                            <button class="btn" id="showAllCentersBtn">
+                                <i class="fas fa-layer-group"></i> 顯示所有中心
+                            </button>
+                        </div>
+
+                        <div class="control-group">
+                            <div class="legend">
+                                <label><i class="fas fa-layer-group"></i> 圖例</label>
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background-color: #4c956c;"></div>
+                                    <span>長者鄰舍中心</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background-color: #ffd166;"></div>
+                                    <span>已選取中心</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background-color: #e63946;"></div>
+                                    <span>搜尋結果</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="map-container">
+            <div id="map"></div>
+            <div class="loading" id="loadingIndicator">
+                <div class="spinner"></div>
+                <p>正在載入長者鄰舍中心數據...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-copyright">
+                &copy; 2024 長者鄰舍中心查詢系統<br />數據來源：政府資訊科技總監辦公室
+            </div>
+        </div>
+    </footer>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        // Initialize variables
+        let map;
+        let centersLayer;
+        let selectedCenter = null;
+        let allCenters = [];
+        let visibleCenters = [];
+        let filteredCenters = [];
+        
+        // Data structures for organization grouping
+        let organizations = {};
+        let districts = new Set();
+        
+        // Add base layers
+        const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> contributors'
+        });
+        
+        const topoLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+            attribution: 'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)'
+        });
+        
+        const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+        });
+        
+        // Add layer control
+        const baseLayers = {
+            "OpenStreetMap": osmLayer,
+            "地形圖": topoLayer,
+            "衛星圖像": satelliteLayer
+        };
+        
+        var currentTileLayer = baseLayers["OpenStreetMap"];
+
+        // Initialize map when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function () {
+            initMap();
+            setupAccordion();
+            setupEventListeners();
+            loadCentersData();
+
+            // Handle mobile panel toggle
+            const panelToggle = document.getElementById('panelToggle');
+            const accordionPanel = document.getElementById('accordionPanel');
+
+            panelToggle.addEventListener('click', function () {
+                accordionPanel.classList.toggle('collapsed');
+                panelToggle.innerHTML = accordionPanel.classList.contains('collapsed')
+                    ? '<i class="fas fa-bars"></i> 顯示控制面板'
+                    : '<i class="fas fa-bars"></i> 隱藏控制面板';
+            });
+        });
+
+        // Initialize the map
+        function initMap() {
+            // Set initial view to Hong Kong
+            map = L.map('map', { zoomControl: false }).setView([22.3193, 114.1694], 11);
+
+            // Add default layer
+            currentTileLayer.addTo(map);
+        }
+
+        // Setup accordion functionality
+        function setupAccordion() {
+            const accordionHeaders = document.querySelectorAll('.accordion-header');
+
+            accordionHeaders.forEach(header => {
+                header.addEventListener('click', function (e) {
+                    const content = this.nextElementSibling;
+                    const isActive = this.classList.contains('active');
+
+                    // Close all accordion items
+                    accordionHeaders.forEach(h => {
+                        h.classList.remove('active');
+                        h.querySelector('.fa-chevron-down').style.transform = 'rotate(0deg)';
+                    });
+
+                    document.querySelectorAll('.accordion-content').forEach(c => {
+                        c.classList.remove('active');
+                    });
+
+                    // Open clicked item if it was not active
+                    if (!isActive) {
+                        this.classList.add('active');
+                        content.classList.add('active');
+                        this.querySelector('.fa-chevron-down').style.transform = 'rotate(180deg)';
+                    }
+
+                    map.invalidateSize();
+                });
+            });
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            // Search functionality
+            document.getElementById('searchInput').addEventListener('input', filterCenters);
+            document.getElementById('districtFilter').addEventListener('change', filterCenters);
+            document.getElementById('organizationFilter').addEventListener('change', filterCenters);
+
+            // Map controls
+            document.getElementById('zoomInBtn').addEventListener('click', function () {
+                map.zoomIn();
+            });
+
+            document.getElementById('zoomOutBtn').addEventListener('click', function () {
+                map.zoomOut();
+            });
+
+            document.getElementById('resetViewBtn').addEventListener('click', function () {
+                map.setView([22.3193, 114.1694], 11);
+            });
+
+            document.getElementById('showAllCentersBtn').addEventListener('click', showAllCenters);
+
+            // Base map selector
+            document.getElementById('baseMapSelect').addEventListener('change', function (e) {
+                // Remove current layer
+                map.removeLayer(currentTileLayer);
+
+                // Add new layer
+                currentTileLayer = baseLayers[e.target.value];
+                currentTileLayer.addTo(map);
+            });
+
+            // Refresh data
+            document.getElementById('refreshData').addEventListener('click', function (e) {
+                e.preventDefault();
+                loadCentersData();
+            });
+        }
+
+        // Load centers data from the WFS service
+        async function loadCentersData() {
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            loadingIndicator.style.display = 'block';
+
+            try {
+                const apiUrl = 'https://portal.csdi.gov.hk/server/services/common/swd_rcd_1629267205235_34036/MapServer/WFSServer?service=wfs&request=GetFeature&typenames=NEC&outputFormat=geojson';
+
+                const response = await fetch(apiUrl);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                // Clear existing data
+                allCenters = [];
+                organizations = {};
+                districts.clear();
+                
+                if (data.features) {
+                    allCenters = data.features;
+                    
+                    // Process data for grouping
+                    processCentersData(allCenters);
+                    
+                    // Create map markers
+                    createCentersLayer(allCenters);
+                    
+                    // Update UI
+                    updateFilters();
+                    populateOrganizationsList();
+                    filterCenters();
+                }
+
+            } catch (error) {
+                console.error('Error loading centers data:', error);
+                showNotification('無法載入長者鄰舍中心數據，請檢查網絡連接');
+                
+                // Try to load from local mock data if API fails
+                try {
+                    const mockResponse = await fetch('mock-centers.json');
+                    if (mockResponse.ok) {
+                        const mockData = await mockResponse.json();
+                        allCenters = mockData.features || [];
+                        processCentersData(allCenters);
+                        createCentersLayer(allCenters);
+                        updateFilters();
+                        populateOrganizationsList();
+                        filterCenters();
+                        showNotification('使用本地測試數據');
+                    }
+                } catch (mockError) {
+                    console.error('Error loading mock data:', mockError);
+                }
+            } finally {
+                loadingIndicator.style.display = 'none';
+            }
+        }
+
+        // Process centers data for organization grouping
+        function processCentersData(centers) {
+            centers.forEach(center => {
+                const props = center.properties;
+                
+                // Add district to set
+                if (props.地區) {
+                    districts.add(props.地區);
+                }
+                
+                // Group by organization
+                const orgName = props.機構名稱 || '未知機構';
+                const district = props.地區 || '未知地區';
+                const centerName = props.中心名稱 || '未知中心';
+                
+                if (!organizations[orgName]) {
+                    organizations[orgName] = {};
+                }
+                
+                if (!organizations[orgName][district]) {
+                    organizations[orgName][district] = [];
+                }
+                
+                organizations[orgName][district].push({
+                    id: props.OBJECTID,
+                    name: centerName,
+                    address: props.地址,
+                    telephone: props.聯絡電話,
+                    email: props.電郵地址,
+                    remarks: props.備註,
+                    lastUpdated: props.Last_Updated_Date___最後更新日期,
+                    coordinates: center.geometry.coordinates
+                });
+            });
+        }
+
+        // Create centers layer on map
+        function createCentersLayer(centers) {
+            // Remove existing layer if any
+            if (centersLayer) {
+                map.removeLayer(centersLayer);
+            }
+            
+            centersLayer = L.layerGroup().addTo(map);
+            
+            centers.forEach(center => {
+                const props = center.properties;
+                const coords = center.geometry.coordinates;
+                
+                if (coords && coords.length === 2) {
+                    const marker = L.circleMarker([coords[1], coords[0]], {
+                        radius: 8,
+                        fillColor: '#4c956c',
+                        color: '#2c6e49',
+                        weight: 2,
+                        opacity: 1,
+                        fillOpacity: 0.8
+                    });
+                    
+                    // Create popup content
+                    const popupContent = `
+                        <div style="max-width: 300px;">
+                            <h4 style="margin: 0 0 10px 0; color: #2c6e49;">${props.中心名稱 || '未命名中心'}</h4>
+                            <p><strong>機構：</strong>${props.機構名稱 || '未知機構'}</p>
+                            <p><strong>地區：</strong>${props.地區 || '未知地區'}</p>
+                            <p><strong>地址：</strong>${props.地址 || '地址不詳'}</p>
+                            <p><strong>電話：</strong>${props.聯絡電話 || '沒有提供'}</p>
+                            <p><strong>電郵：</strong>${props.電郵地址 || '沒有提供'}</p>
+                            ${props.備註 && props.備註 !== 'N.A.' ? `<p><strong>備註：</strong>${props.備註}</p>` : ''}
+                            <p><small><strong>最後更新：</strong>${props.Last_Updated_Date___最後更新日期 || '未知'}</small></p>
+                            <button onclick="selectCenter(${props.OBJECTID})" style="
+                                background-color: #4c956c;
+                                color: white;
+                                border: none;
+                                padding: 5px 10px;
+                                border-radius: 3px;
+                                cursor: pointer;
+                                margin-top: 10px;
+                            ">
+                                查看詳細資訊
+                            </button>
+                        </div>
+                    `;
+                    
+                    marker.bindPopup(popupContent);
+                    
+                    // Add click event
+                    marker.on('click', function(e) {
+                        selectCenter(props.OBJECTID);
+                    });
+                    
+                    centersLayer.addLayer(marker);
+                }
+            });
+        }
+
+        // Update filter dropdowns
+        function updateFilters() {
+            const districtFilter = document.getElementById('districtFilter');
+            const orgFilter = document.getElementById('organizationFilter');
+            
+            // Clear existing options (keep first option)
+            while (districtFilter.options.length > 1) {
+                districtFilter.remove(1);
+            }
+            
+            while (orgFilter.options.length > 1) {
+                orgFilter.remove(1);
+            }
+            
+            // Add districts
+            Array.from(districts).sort().forEach(district => {
+                const option = document.createElement('option');
+                option.value = district;
+                option.textContent = district;
+                districtFilter.appendChild(option);
+            });
+            
+            // Add organizations
+            Object.keys(organizations).sort().forEach(org => {
+                const option = document.createElement('option');
+                option.value = org;
+                option.textContent = org;
+                orgFilter.appendChild(option);
+            });
+            
+            // Update stats
+            document.getElementById('totalCenters').textContent = allCenters.length;
+        }
+
+        // Populate organizations list in accordion
+        function populateOrganizationsList() {
+            const orgList = document.getElementById('organizationsList');
+            orgList.innerHTML = '';
+            
+            Object.keys(organizations).sort().forEach(orgName => {
+                const orgDiv = document.createElement('div');
+                orgDiv.className = 'nested-accordion-item';
+                
+                const orgHeader = document.createElement('div');
+                orgHeader.className = 'nested-accordion-header';
+                orgHeader.innerHTML = `
+                    <span>${orgName}</span>
+                    <i class="fas fa-chevron-down"></i>
+                `;
+                
+                const orgContent = document.createElement('div');
+                orgContent.className = 'nested-accordion-content';
+                
+                // Add districts for this organization
+                Object.keys(organizations[orgName]).sort().forEach(district => {
+                    const districtDiv = document.createElement('div');
+                    districtDiv.className = 'nested-accordion-item';
+                    
+                    const districtHeader = document.createElement('div');
+                    districtHeader.className = 'nested-accordion-header';
+                    districtHeader.style.borderLeftColor = '#2c6e49';
+                    districtHeader.innerHTML = `
+                        <span>${district} (${organizations[orgName][district].length}個中心)</span>
+                        <i class="fas fa-chevron-down"></i>
+                    `;
+                    
+                    const districtContent = document.createElement('div');
+                    districtContent.className = 'nested-accordion-content';
+                    
+                    // Add centers for this district
+                    organizations[orgName][district].forEach(center => {
+                        const centerDiv = document.createElement('div');
+                        centerDiv.className = 'center-details';
+                        centerDiv.innerHTML = `
+                            <h5><i class="fas fa-map-marker-alt"></i> ${center.name}</h5>
+                            <p><strong>地址：</strong>${center.address}</p>
+                            <p><strong>電話：</strong>${center.telephone}</p>
+                            <p><strong>電郵：</strong>${center.email}</p>
+                            ${center.remarks && center.remarks !== 'N.A.' ? `<p><strong>備註：</strong>${center.remarks}</p>` : ''}
+                            <p><strong>最後更新：</strong>${center.lastUpdated}</p>
+                            <button onclick="selectCenter(${center.id})" style="
+                                background-color: #4c956c;
+                                color: white;
+                                border: none;
+                                padding: 8px 12px;
+                                border-radius: 4px;
+                                cursor: pointer;
+                                width: 100%;
+                                margin-top: 10px;
+                            ">
+                                <i class="fas fa-map-marker-alt"></i> 在地圖上定位
+                            </button>
+                        `;
+                        districtContent.appendChild(centerDiv);
+                    });
+                    
+                    // District accordion functionality
+                    districtHeader.addEventListener('click', function() {
+                        const isActive = districtContent.classList.contains('active');
+                        
+                        // Toggle active state
+                        districtContent.classList.toggle('active');
+                        this.querySelector('.fa-chevron-down').style.transform = 
+                            isActive ? 'rotate(0deg)' : 'rotate(180deg)';
+                    });
+                    
+                    districtDiv.appendChild(districtHeader);
+                    districtDiv.appendChild(districtContent);
+                    orgContent.appendChild(districtDiv);
+                });
+                
+                // Organization accordion functionality
+                orgHeader.addEventListener('click', function() {
+                    const isActive = orgContent.classList.contains('active');
+                    
+                    // Toggle active state
+                    orgContent.classList.toggle('active');
+                    this.querySelector('.fa-chevron-down').style.transform = 
+                        isActive ? 'rotate(0deg)' : 'rotate(180deg)';
+                });
+                
+                orgDiv.appendChild(orgHeader);
+                orgDiv.appendChild(orgContent);
+                orgList.appendChild(orgDiv);
+            });
+        }
+
+        // Filter centers based on search criteria
+        function filterCenters() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const selectedDistrict = document.getElementById('districtFilter').value;
+            const selectedOrg = document.getElementById('organizationFilter').value;
+            
+            filteredCenters = allCenters.filter(center => {
+                const props = center.properties;
+                const matchesSearch = !searchTerm || 
+                    (props.中心名稱 && props.中心名稱.toLowerCase().includes(searchTerm)) ||
+                    (props.地區 && props.地區.toLowerCase().includes(searchTerm)) ||
+                    (props.機構名稱 && props.機構名稱.toLowerCase().includes(searchTerm)) ||
+                    (props.地址 && props.地址.toLowerCase().includes(searchTerm));
+                
+                const matchesDistrict = !selectedDistrict || props.地區 === selectedDistrict;
+                const matchesOrg = !selectedOrg || props.機構名稱 === selectedOrg;
+                
+                return matchesSearch && matchesDistrict && matchesOrg;
+            });
+            
+            // Update visible centers
+            visibleCenters = filteredCenters;
+            
+            // Update map markers
+            updateMapMarkers();
+            
+            // Update stats
+            document.getElementById('visibleCenters').textContent = visibleCenters.length;
+            
+            // Show notification if no results
+            if (visibleCenters.length === 0 && allCenters.length > 0) {
+                showNotification('找不到符合條件的中心');
+            }
+        }
+
+        // Update map markers based on filtered centers
+        function updateMapMarkers() {
+            // Clear existing markers
+            if (centersLayer) {
+                centersLayer.clearLayers();
+            }
+            
+            // Add filtered markers
+            visibleCenters.forEach(center => {
+                const props = center.properties;
+                const coords = center.geometry.coordinates;
+                
+                if (coords && coords.length === 2) {
+                    const isSelected = selectedCenter && selectedCenter.properties.OBJECTID === props.OBJECTID;
+                    
+                    const marker = L.circleMarker([coords[1], coords[0]], {
+                        radius: isSelected ? 10 : 8,
+                        fillColor: isSelected ? '#ffd166' : '#4c956c',
+                        color: isSelected ? '#f4a261' : '#2c6e49',
+                        weight: isSelected ? 3 : 2,
+                        opacity: 1,
+                        fillOpacity: 0.9
+                    });
+                    
+                    // Create popup content
+                    const popupContent = `
+                        <div style="max-width: 300px;">
+                            <h4 style="margin: 0 0 10px 0; color: ${isSelected ? '#f4a261' : '#2c6e49'};">${props.中心名稱 || '未命名中心'}</h4>
+                            <p><strong>機構：</strong>${props.機構名稱 || '未知機構'}</p>
+                            <p><strong>地區：</strong>${props.地區 || '未知地區'}</p>
+                            <p><strong>地址：</strong>${props.地址 || '地址不詳'}</p>
+                            <p><strong>電話：</strong>${props.聯絡電話 || '沒有提供'}</p>
+                            <p><strong>電郵：</strong>${props.電郵地址 || '沒有提供'}</p>
+                            ${props.備註 && props.備註 !== 'N.A.' ? `<p><strong>備註：</strong>${props.備註}</p>` : ''}
+                            <p><small><strong>最後更新：</strong>${props.Last_Updated_Date___最後更新日期 || '未知'}</small></p>
+                            <button onclick="selectCenter(${props.OBJECTID})" style="
+                                background-color: ${isSelected ? '#f4a261' : '#4c956c'};
+                                color: white;
+                                border: none;
+                                padding: 5px 10px;
+                                border-radius: 3px;
+                                cursor: pointer;
+                                margin-top: 10px;
+                            ">
+                                ${isSelected ? '已選取' : '查看詳細資訊'}
+                            </button>
+                        </div>
+                    `;
+                    
+                    marker.bindPopup(popupContent);
+                    
+                    // Add click event
+                    marker.on('click', function(e) {
+                        selectCenter(props.OBJECTID);
+                    });
+                    
+                    centersLayer.addLayer(marker);
+                }
+            });
+            
+            // Fit bounds to visible centers if there are any
+            if (visibleCenters.length > 0) {
+                const bounds = L.latLngBounds();
+                visibleCenters.forEach(center => {
+                    const coords = center.geometry.coordinates;
+                    if (coords && coords.length === 2) {
+                        bounds.extend([coords[1], coords[0]]);
+                    }
+                });
+                
+                // Only adjust view if we have multiple centers
+                if (visibleCenters.length > 1) {
+                    map.fitBounds(bounds, { padding: [50, 50] });
+                } else if (visibleCenters.length === 1) {
+                    const coords = visibleCenters[0].geometry.coordinates;
+                    map.setView([coords[1], coords[0]], 14);
+                }
+            }
+        }
+
+        // Select a center and highlight it
+        function selectCenter(centerId) {
+            const center = allCenters.find(c => c.properties.OBJECTID === centerId);
+            
+            if (!center) return;
+            
+            selectedCenter = center;
+            const props = center.properties;
+            const coords = center.geometry.coordinates;
+            
+            // Open the centers accordion
+            const orgHeader = document.getElementById('headerOrganizations');
+            const orgContent = document.getElementById('contentOrganizations');
+            
+            if (!orgHeader.classList.contains('active')) {
+                orgHeader.click();
+            }
+            
+            // Update map view
+            if (coords && coords.length === 2) {
+                map.setView([coords[1], coords[0]], 16);
+            }
+            
+            // Update markers
+            updateMapMarkers();
+            
+            // Show notification
+            showNotification(`已選取中心：${props.中心名稱}`);
+            
+            // Open popup for the selected center
+            centersLayer.eachLayer(function(layer) {
+                if (layer.getLatLng().lat === coords[1] && layer.getLatLng().lng === coords[0]) {
+                    layer.openPopup();
+                }
+            });
+        }
+
+        // Show all centers on map
+        function showAllCenters() {
+            // Reset filters
+            document.getElementById('searchInput').value = '';
+            document.getElementById('districtFilter').value = '';
+            document.getElementById('organizationFilter').value = '';
+            
+            // Show all centers
+            visibleCenters = allCenters;
+            updateMapMarkers();
+            
+            // Update stats
+            document.getElementById('visibleCenters').textContent = visibleCenters.length;
+            
+            // Fit bounds to all centers
+            const bounds = L.latLngBounds();
+            allCenters.forEach(center => {
+                const coords = center.geometry.coordinates;
+                if (coords && coords.length === 2) {
+                    bounds.extend([coords[1], coords[0]]);
+                }
+            });
+            
+            if (allCenters.length > 0) {
+                map.fitBounds(bounds, { padding: [50, 50] });
+            }
+            
+            showNotification('顯示所有長者鄰舍中心');
+        }
+
+        // Show temporary notification
+        function showNotification(message) {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background-color: #2c6e49;
+                color: white;
+                padding: 15px 20px;
+                border-radius: 5px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+                z-index: 10000;
+                font-weight: 500;
+                max-width: 300px;
+                animation: fadeInOut 3s ease-in-out;
+            `;
+
+            // Add keyframes for animation
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes fadeInOut {
+                    0% { opacity: 0; transform: translateY(-10px); }
+                    10% { opacity: 1; transform: translateY(0); }
+                    90% { opacity: 1; transform: translateY(0); }
+                    100% { opacity: 0; transform: translateY(-10px); }
+                }
+            `;
+            document.head.appendChild(style);
+
+            notification.textContent = message;
+            document.body.appendChild(notification);
+
+            // Remove after animation completes
+            setTimeout(() => {
+                notification.remove();
+                style.remove();
+            }, 3000);
+        }
+    </script>
+</body>
+
+</html>
